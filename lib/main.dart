@@ -128,59 +128,63 @@ class _PortfolioHomePageState extends State<PortfolioHomePage> {
             _mousePosition = event.position;
           });
         },
-        child: Stack(
-          children: [
-            DynamicGridBackground(mousePosition: _mousePosition),
-            Container(
-              color: kPrimaryColor,
-              margin: const EdgeInsets.symmetric(horizontal: 200),
-            ),
-            ScrollablePositionedList.builder(
-              itemCount: sectionWidgets.length + 1, // +1 for the contact footer
-              itemScrollController: itemScrollController,
-              itemPositionsListener: itemPositionsListener,
-              itemBuilder: (context, index) {
-                // --- ADDED Contact Section at the end of the list ---
-                if (index == sectionWidgets.length) {
-                  return const ContactSection();
-                }
+        // --- CHANGE: Added SelectionArea to make all text selectable ---
+        child: SelectionArea(
+          child: Stack(
+            children: [
+              DynamicGridBackground(mousePosition: _mousePosition),
+              Container(
+                color: kPrimaryColor,
+                margin: const EdgeInsets.symmetric(horizontal: 200),
+              ),
+              ScrollablePositionedList.builder(
+                itemCount:
+                    sectionWidgets.length + 1, // +1 for the contact footer
+                itemScrollController: itemScrollController,
+                itemPositionsListener: itemPositionsListener,
+                itemBuilder: (context, index) {
+                  // --- ADDED Contact Section at the end of the list ---
+                  if (index == sectionWidgets.length) {
+                    return const ContactSection();
+                  }
 
-                return Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 950),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (index == 0) ...[
-                            const SizedBox(height: 120),
-                            const HeaderSection(),
+                  return Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 950),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (index == 0) ...[
+                              const SizedBox(height: 120),
+                              const HeaderSection(),
+                              const SizedBox(height: 48),
+                            ],
+                            SectionWidget(
+                              title: sectionTitles[index],
+                              children: [sectionWidgets[index]],
+                            ),
                             const SizedBox(height: 48),
                           ],
-                          SectionWidget(
-                            title: sectionTitles[index],
-                            children: [sectionWidgets[index]],
-                          ),
-                          const SizedBox(height: 48),
-                        ],
+                        ),
                       ),
                     ),
-                  ),
-                );
-              },
-            ),
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: TopNavigationBar(
-                sections: sectionTitles,
-                currentIndex: _currentSectionIndex,
-                onTap: _scrollToIndex,
+                  );
+                },
               ),
-            ),
-          ],
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: TopNavigationBar(
+                  sections: sectionTitles,
+                  currentIndex: _currentSectionIndex,
+                  onTap: _scrollToIndex,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
