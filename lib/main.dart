@@ -523,17 +523,24 @@ class GlassCard extends StatelessWidget {
   }
 }
 
+const Color kLinkedin = Color(0xFF1a64c4);
+const Color kGithub = Color(0xFF181516);
+const Color kHover = Color(0xFFFFFFFF);
+const Color kEmail = Color.fromARGB(255, 51, 135, 204);
+
 class HeaderSection extends StatelessWidget {
   const HeaderSection({super.key});
 
   void _downloadResume() {
     // Make sure you have your resume file in assets/resume.pdf
     if (kIsWeb) {
-      html.AnchorElement anchorElement = html.AnchorElement(
-        href: 'assets/resume.pdf',
-      );
-      anchorElement.download = 'AryanJumani_Resume.pdf';
+      html.AnchorElement anchorElement =
+          html.AnchorElement(href: 'assets/resume.pdf')
+            ..download = 'AryanJumani_Resume.pdf'
+            ..style.display = 'none';
+      html.document.body!.append(anchorElement);
       anchorElement.click();
+      anchorElement.remove();
     }
   }
 
@@ -561,16 +568,22 @@ class HeaderSection extends StatelessWidget {
             SocialIcon(
               icon: FontAwesomeIcons.linkedin,
               url: 'https://linkedin.com/in/aryanjumani',
+              defaultColor: kSubtleTextColor,
+              hoverColor: kLinkedin,
             ),
             const SizedBox(width: 16),
             SocialIcon(
               icon: FontAwesomeIcons.github,
               url: 'https://github.com/aryanjumani',
+              defaultColor: kSubtleTextColor,
+              hoverColor: kHover,
             ),
             const SizedBox(width: 16),
             SocialIcon(
               icon: FontAwesomeIcons.envelope,
               url: 'mailto:aryanjumani10@gmail.com',
+              hoverColor: kEmail,
+              defaultColor: kSubtleTextColor,
             ),
             const Spacer(),
             // --- NEW: Download Resume Button ---
@@ -1117,7 +1130,7 @@ class SkillLogo extends StatelessWidget {
         hoveredSkillNotifier.value = null;
       },
       child: SizedBox(
-        width: 60,
+        width: 70,
         child: Column(
           children: [
             Icon(icon, size: 36, color: kTextColor),
@@ -1312,22 +1325,53 @@ class SkillTag extends StatelessWidget {
           color: kAccentColor,
           fontWeight: FontWeight.w500,
         ),
+        softWrap: false,
+        overflow: TextOverflow.visible,
       ),
     );
   }
 }
 
-class SocialIcon extends StatelessWidget {
+class SocialIcon extends StatefulWidget {
   final IconData icon;
   final String url;
-  const SocialIcon({super.key, required this.icon, required this.url});
+  final Color defaultColor; // The color when not hovered
+  final Color hoverColor;
+
+  const SocialIcon({
+    super.key,
+    required this.icon,
+    required this.url,
+    required this.defaultColor,
+    required this.hoverColor,
+  });
+
+  @override
+  State<SocialIcon> createState() => _SocialIconState();
+}
+
+class _SocialIconState extends State<SocialIcon> {
+  late Color _iconColor;
+
+  @override
+  void initState() {
+    super.initState();
+    _iconColor = widget.defaultColor;
+  }
 
   @override
   Widget build(BuildContext context) {
-    return IconButton(
-      icon: FaIcon(icon, color: kSubtleTextColor),
-      onPressed: () => _launchURL(url),
-      hoverColor: kCardColor,
+    return MouseRegion(
+      onEnter: (_) => setState(() => _iconColor = widget.hoverColor),
+      onExit: (_) => setState(() => _iconColor = widget.defaultColor),
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: () => _launchURL(widget.url),
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: FaIcon(widget.icon, color: _iconColor, size: 24),
+        ),
+      ),
     );
   }
 }
