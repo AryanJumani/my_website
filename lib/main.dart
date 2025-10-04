@@ -8,6 +8,7 @@ import 'dart:ui';
 import 'dart:math' as math;
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:dev_icons/dev_icons.dart';
+import 'package:flutter/services.dart' show rootBundle;
 
 // Conditional import for web-only features
 import 'dart:html' if (dart.library.io) 'dart:io' as html;
@@ -531,16 +532,22 @@ const Color kEmail = Color.fromARGB(255, 51, 135, 204);
 class HeaderSection extends StatelessWidget {
   const HeaderSection({super.key});
 
-  void _downloadResume() {
-    // Make sure you have your resume file in assets/resume.pdf
+  Future<void> _downloadResume() async {
     if (kIsWeb) {
-      html.AnchorElement anchorElement =
-          html.AnchorElement(href: 'assets/resume.pdf')
-            ..download = 'AryanJumani_Resume.pdf'
-            ..style.display = 'none';
-      html.document.body!.append(anchorElement);
-      anchorElement.click();
-      anchorElement.remove();
+      try {
+        final byteData = await rootBundle.load('assets/resume.pdf');
+        final blob = html.Blob([
+          byteData.buffer.asUint8List(),
+        ], 'application/pdf');
+        final url = html.Url.createObjectUrlFromBlob(blob);
+        final anchor =
+            html.AnchorElement(href: url)
+              ..setAttribute("download", "AryanJumani_Resume.pdf")
+              ..click();
+        html.Url.revokeObjectUrl(url);
+      } catch (e) {
+        print('Error downloading resume: $e');
+      }
     }
   }
 
@@ -647,13 +654,12 @@ class AboutMeSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Flexible(
-            // <-- FIX: Changed Expanded to Flexible
             flex: 3,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: const [
                 Text(
-                  "Driven by curiosity and a passion for technology, I am a Computer Science student at Purdue University specializing in Data Science and Entrepreneurship. My journey has taken me from building scalable data frameworks at Tredence and mobile apps at Svaguna to exploring the frontiers of augmented reality at IIT-Delhi. I thrive on solving complex problems, whether it's optimizing a quantum computing model or designing an intuitive game. I believe in leveraging technology to create meaningful and innovative user experiences.",
+                  "Driven by curiosity and a passion for technology, I am a Junior at Purdue with a major in Computer Science. My journey has taken me from building scalable data frameworks at Tredence and mobile apps at Svaguna to exploring the frontiers of augmented reality at IIT-Delhi and TriOn. I thrive on solving complex problems, whether it's optimizing a quantum computing model or designing an intuitive game. I believe in leveraging technology to create meaningful and innovative user experiences.",
                   style: TextStyle(fontSize: 16, height: 1.6),
                 ),
               ],
@@ -732,6 +738,26 @@ class ProjectSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: const [
+        ProjectCard(
+          title: "TriOn",
+          description:
+              "Built a virtual try-on application for Android using Unity. Leveraged C# and Google's MediaPipe framework for real-time pose-detection and body tracking for accurate 3D model rendering. The app also included native Android services written in Java for features like screen recording, supported by a Python backend server and REST API hosted on a home server accessible to the internet.",
+          tags: ["Unity", "C#", "Python", "Java", "MediaPipe", "AR"],
+          associatedSkills: [
+            'Unity',
+            'C#',
+            'Java',
+            'Python',
+            'REST APIs',
+            'Android Development',
+          ],
+          links: {
+            'Github': 'https://github.com/aryanjumani/clothes_ar',
+            'PlayStore (coming soon)':
+                'https://play.google.com/store/apps/details?id=com.AryanJumani.TriOn',
+          },
+        ),
+        SizedBox(height: 16),
         ProjectCard(
           title: "Quantum Computing Predictor Model",
           description:
@@ -958,18 +984,69 @@ class ExperienceCard extends StatelessWidget {
   }
 }
 
+class HoverLink extends StatefulWidget {
+  final String text;
+  final String url;
+
+  const HoverLink({super.key, required this.text, required this.url});
+
+  @override
+  State<HoverLink> createState() => _HoverLinkState();
+}
+
+class _HoverLinkState extends State<HoverLink> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTap: () => launchUrl(Uri.parse(widget.url)),
+        behavior: HitTestBehavior.opaque,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              widget.text,
+              style: TextStyle(
+                color: kTextColor, // Or another color you prefer
+                decoration:
+                    _isHovered ? TextDecoration.underline : TextDecoration.none,
+                decorationColor: kTextColor, // Makes the underline color match
+              ),
+            ),
+            const SizedBox(width: 4),
+            Icon(
+              Icons.arrow_outward_rounded, // Diagonal right pointing icon
+              size: 16,
+              color: kTextColor,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class ProjectCard extends StatelessWidget {
   final String title, description;
   final List<String> tags;
   final List<String> associatedSkills;
+  final Map<String, String> links;
 
   const ProjectCard({
     super.key,
     required this.title,
     required this.description,
-    required this.tags,
-    required this.associatedSkills,
+    this.tags = const [],
+    this.associatedSkills = const [],
+    this.links = const {},
   });
+
+  // The _getIconForLink helper method is no longer needed and can be removed.
 
   @override
   Widget build(BuildContext context) {
@@ -1002,13 +1079,37 @@ class ProjectCard extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: kAccentColor,
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            title,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: kAccentColor,
+                            ),
+                          ),
+                        ),
+                        // Replace the old icon logic with the new HoverLink widgets
+                        Row(
+                          children:
+                              links.entries.map((entry) {
+                                return Padding(
+                                  // Adds a bit of space between links if there are multiple
+                                  padding: const EdgeInsets.only(left: 16.0),
+                                  child: SelectionContainer.disabled(
+                                    child: HoverLink(
+                                      text: entry.key,
+                                      url: entry.value,
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -1018,11 +1119,12 @@ class ProjectCard extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 16),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: tags.map((tag) => SkillTag(name: tag)).toList(),
-                ),
+                if (tags.isNotEmpty)
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: tags.map((tag) => SkillTag(name: tag)).toList(),
+                  ),
               ],
             ),
           ),
