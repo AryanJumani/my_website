@@ -1,4 +1,7 @@
-from flask import Flask, request, jsonify, render_template
+from flask_cors import CORS
+import requests
+
+from flask import Flask, request, jsonify, render_template, Response
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 import cv2
@@ -10,6 +13,9 @@ from waitress import serve
 from paste.translogger import TransLogger
 
 app = Flask(__name__)
+
+CORS(app, resources={r"/*": {"origins": "https://aryanjumani.com"}})
+
 app.config['JWT_SECRET_KEY'] = os.environ.get("JWT_KEY", "YOUR_SECRET_KEY")
 jwt = JWTManager(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
@@ -250,6 +256,32 @@ def account_deletion_page():
 @app.route('/google-video', methods=['GET'])
 def google_video():
     return render_template('google_video.html'), 200
+
+
+FASTAPI_SERVICE_URL = "http://localhost:8000"
+
+
+
+@app.route('/separate-live', methods=['POST'])
+def proxy_separate_live():
+    # Stream the file upload directly to the FastAPI service
+    resp = requests.post(
+        f"{FASTAPI_SERVICE_URL}/separate-live",
+        files={'file': (request.files['file'].filename, request.files['file'].stream, request.files['file'].content_type)},
+        stream=True
+    )
+    # Stream the response from FastAPI back to the client
+    return Response(resp.iter_content(chunk_size=1024), content_type=resp.headers['Content-Type'])
+
+@app.route('/transcribe', methods=['GET'])
+def proxy_transcribe():
+    # Forward the GET request and its query parameters
+    resp = requests.get(
+        f"{FASTAPI_SERVICE_URL}/transcribe",
+        params=request.args,
+    )
+    return Response(resp.content, content_type=resp.headers['Content-Type'])
+
 
 logged_app = TransLogger(app, setup_console_handler=False)
 
